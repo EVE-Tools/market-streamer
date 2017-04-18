@@ -9,9 +9,9 @@ This service for [Element43](https://element-43.com) provides a drop-in replacem
   * `esi-universe.read_structures.v1`
   * `esi-markets.structure_markets.v1`
 * You can use any SSO script for obtaining a token
-* For fetching the token with [evedata](https://github.com/antihax/evedata) use something like http://localhost:3000/X/boostrapEveSSOAnswer as callback URL
+* For fetching the token with [evedata](https://github.com/antihax/evedata) use something like http://localhost:3000/X/bootstrapEveSSOAnswer as callback URL
 * Note the client ID and secret and configure evedata with it
-* Use the route http://localhost:3000/X/boostrapEveAuth for obtaining your token
+* Use the route http://localhost:3000/X/bootstrapEveAuth for obtaining your token
 * Configure the market streamer with your ID, secret and refresh token
 * Set your callback URL to something like `eveauth-e43://market-streamer` - you won't need it anymore
 
