@@ -17,7 +17,7 @@ func Initialize() {
 	httpClient := &http.Client{
 		Timeout: time.Duration(time.Second * 10),
 	}
-	esiClient = *goesi.NewAPIClient(httpClient, "Element43/market-streamer(element-43.com)")
+	esiClient = *goesi.NewAPIClient(httpClient, "Element43/market-streamer (element-43.com)")
 
 	updateTypes()
 	go scheduleTypeUpdate()
