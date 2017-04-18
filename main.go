@@ -30,8 +30,8 @@ var config Config
 func main() {
 	// Load config and connect to queues
 	loadConfig()
-	emdr := emdr.Initialize()
-	locationCache.Initialize()
+	emdr := emdr.Initialize(config.ZMQBindEndpoint)
+	locationCache.Initialize(config.LocationServiceURL)
 	regions.Initialize()
 	citadels.Initialize()
 	marketTypes.Initialize()

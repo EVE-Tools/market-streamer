@@ -10,6 +10,7 @@ import (
 	staticData "github.com/EVE-Tools/static-data/lib/locations"
 )
 
+var locationServiceURL string
 var httpClient *http.Client
 var locationCache = struct {
 	sync.RWMutex
@@ -17,7 +18,9 @@ var locationCache = struct {
 }{store: make(map[int64]*staticData.Location)}
 
 // Initialize initializes infrastructure for locations
-func Initialize() {
+func Initialize(url string) {
+	locationServiceURL = url
+
 	httpClient = &http.Client{
 		Timeout: time.Duration(time.Second * 10),
 	}
@@ -46,7 +49,7 @@ func GetLocations(locationIDs []int64) (map[int64]*staticData.Location, error) {
 			return nil, err
 		}
 
-		response, err := httpClient.Post("https://element-43.com/api/static-data/v1/location/", "application/json", bytes.NewBuffer(serializedRequest))
+		response, err := httpClient.Post(locationServiceURL, "application/json", bytes.NewBuffer(serializedRequest))
 		if err != nil {
 			return nil, err
 		}

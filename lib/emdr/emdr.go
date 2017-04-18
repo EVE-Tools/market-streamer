@@ -10,7 +10,7 @@ var messageChannel chan []byte
 var upstreamSocket *zmq4.Socket
 
 // Initialize sets up the EMDR emulation socket
-func Initialize() chan<- []byte {
+func Initialize(bindEndpoint string) chan<- []byte {
 	messageChannel = make(chan []byte, 100)
 
 	s, err := zmq4.NewSocket(zmq4.PUB)
@@ -20,7 +20,7 @@ func Initialize() chan<- []byte {
 
 	upstreamSocket = s
 
-	upstreamSocket.Bind("tcp://*:8050")
+	upstreamSocket.Bind(bindEndpoint)
 
 	go runSendLoop()
 
