@@ -114,7 +114,7 @@ func ScrapeMarket(regionID int64) ([]byte, *time.Time, error) {
 		esiOrdersCitadel, response, err := esiClient.V1.MarketApi.GetMarketsStructuresStructureId(esiPublicContext, citadelID, params)
 		if err != nil {
 			// Simply skip these citadels
-			if response.StatusCode == 403 {
+			if (response != nil) && (response.StatusCode == 403) {
 				continue
 			}
 			return nil, nil, err
