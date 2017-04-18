@@ -54,7 +54,7 @@ func Initialize(clientID string, secretKey string, refreshToken string) {
 	}
 
 	esiPublicContext = context.WithValue(context.TODO(), goesi.ContextOAuth2, esiPublicToken)
-	esiClient = *goesi.NewAPIClient(httpClient, "Element43/market-streamer(element-43.com)")
+	esiClient = *goesi.NewAPIClient(httpClient, "Element43/market-streamer (element-43.com)")
 }
 
 // ScrapeMarket gets a market from ESI and pushes it to supported backends
