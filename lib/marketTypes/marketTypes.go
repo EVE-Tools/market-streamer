@@ -30,7 +30,7 @@ func GetMarketTypes() []int64 {
 
 // Keep ticking in own goroutine and spawn worker tasks.
 func scheduleTypeUpdate() {
-	ticker := time.NewTicker(30 * time.Minute)
+	ticker := time.NewTicker(6 * time.Hour)
 	defer ticker.Stop()
 	for {
 		<-ticker.C
