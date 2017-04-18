@@ -13,7 +13,7 @@ This service for [Element43](https://element-43.com) provides a drop-in replacem
 * Note the client ID and secret and configure evedata with it
 * Use the route http://localhost:3000/X/boostrapEveAuth for obtaining your token
 * Configure the market streamer with your ID, secret and refresh token
-* Set your callback URL to something like `eveauth-e43://market-streame` - you won't need it anymore
+* Set your callback URL to something like `eveauth-e43://market-streamer` - you won't need it anymore
 
 ## Installation
 Either use the prebuilt Docker images and pass the appropriate env vars (see below), or:
