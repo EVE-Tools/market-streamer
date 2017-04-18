@@ -9,7 +9,7 @@ import (
 )
 
 var esiClient goesi.APIClient
-var esiSemaphore = make(chan struct{}, 500)
+var esiSemaphore = make(chan struct{}, 200)
 var typeIDs []int64
 
 // Initialize initializes the market type updates
@@ -30,7 +30,7 @@ func GetMarketTypes() []int64 {
 
 // Keep ticking in own goroutine and spawn worker tasks.
 func scheduleTypeUpdate() {
-	ticker := time.NewTicker(6 * time.Hour)
+	ticker := time.NewTicker(2 * time.Hour)
 	defer ticker.Stop()
 	for {
 		<-ticker.C
