@@ -1,0 +1,19 @@
+workspace:
+  base: /go
+  path: src/github.com/EVE-Tools/market-streamer
+
+pipeline:
+  build:
+    image: golang:alpine
+    commands:
+      - apk update
+      - apk add zeromq-dev git build-base
+      - go get ./...
+      - go build
+
+  docker:
+    image: plugins/docker
+    repo: evetools/market-streamer
+    tag:
+      - latest
+      - ${DRONE_BRANCH}
