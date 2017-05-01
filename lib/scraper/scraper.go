@@ -113,8 +113,9 @@ func ScrapeMarket(regionID int64) ([]byte, *time.Time, error) {
 		params["page"] = int32(1)
 		esiOrdersCitadel, response, err := esiClient.V1.MarketApi.GetMarketsStructuresStructureId(esiPublicContext, citadelID, params)
 		if err != nil {
-			// Simply skip these citadels
+			// Simply blacklist and skip these citadels
 			if (response != nil) && (response.StatusCode == 403) {
+				citadels.BlacklistCitadel(citadelID)
 				continue
 			}
 			return nil, nil, err

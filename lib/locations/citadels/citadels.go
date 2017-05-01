@@ -11,19 +11,27 @@ import (
 
 var esiClient goesi.APIClient
 
+// Maps a regionID to citadelIDs in that region
 var citadelsInRegion = struct {
 	sync.RWMutex
 	store map[int64][]int64
 }{store: make(map[int64][]int64)}
+
+// List of citadels which returned 403s, wiped every twelve hours
+var citadelBlacklist = struct {
+	sync.RWMutex
+	store map[int64]bool
+}{store: make(map[int64]bool)}
 
 // Initialize initializes the citadel updates
 func Initialize() {
 	esiClient = *goesi.NewAPIClient(nil, "Element43/market-streamer (element-43.com")
 	updateCitadels()
 	go scheduleCitadelUpdate()
+	go scheduleBlacklistWipe()
 }
 
-// GetCitadelsInRegions returns all public citadel's IDs in a given list of regionIDs
+// GetCitadelsInRegions returns all public citadel's IDs in a given list of regionIDs (excluding blacklisted ones)
 func GetCitadelsInRegions(regionIDs []int64) []int64 {
 	var ids []int64
 
@@ -34,15 +42,31 @@ func GetCitadelsInRegions(regionIDs []int64) []int64 {
 	return ids
 }
 
-// GetCitadelsInRegion returns all public citadel's IDs for a given regionID
+// GetCitadelsInRegion returns all public citadel's IDs for a given regionID (excluding blacklisted ones)
 func GetCitadelsInRegion(regionID int64) []int64 {
+	var ids []int64
 	citadelsInRegion.RLock()
-	ids := citadelsInRegion.store[regionID]
+	citadelBlacklist.RLock()
+
+	for _, citadelID := range citadelsInRegion.store[regionID] {
+		if !citadelBlacklist.store[citadelID] {
+			ids = append(ids, citadelID)
+		}
+	}
+
+	citadelBlacklist.RUnlock()
 	citadelsInRegion.RUnlock()
 	return ids
 }
 
-// Keep ticking in own goroutine and spawn worker tasks.
+// BlacklistCitadel blacklists a citadel (e.g. if we don't have access)
+func BlacklistCitadel(id int64) {
+	citadelBlacklist.Lock()
+	citadelBlacklist.store[id] = true
+	citadelBlacklist.Unlock()
+}
+
+// Schdeule and perform citadel update
 func scheduleCitadelUpdate() {
 	ticker := time.NewTicker(30 * time.Minute)
 	defer ticker.Stop()
@@ -52,7 +76,17 @@ func scheduleCitadelUpdate() {
 	}
 }
 
-// Updates list of regionIDs
+// Schedule and perform blacklist wipe
+func scheduleBlacklistWipe() {
+	ticker := time.NewTicker(12 * time.Hour)
+	defer ticker.Stop()
+	for {
+		<-ticker.C
+		go wipeBlacklist()
+	}
+}
+
+// Updates list of citadelIDs
 func updateCitadels() {
 	logrus.Debug("Updating citadels.")
 
@@ -76,6 +110,17 @@ func updateCitadels() {
 	citadelsInRegion.Unlock()
 
 	logrus.Debug("Citadel update done.")
+}
+
+// Wipes the blacklist
+func wipeBlacklist() {
+	logrus.Debug("Wiping citadel blacklist.")
+
+	citadelBlacklist.Lock()
+	citadelBlacklist.store = make(map[int64]bool)
+	citadelBlacklist.Unlock()
+
+	logrus.Debug("Done wiping citadel blacklist.")
 }
 
 // Get all citadels from ESI
