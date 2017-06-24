@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/EVE-Tools/goesi"
 	"github.com/Sirupsen/logrus"
+	"github.com/antihax/goesi"
 )
 
 var esiClient goesi.APIClient
