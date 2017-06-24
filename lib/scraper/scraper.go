@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"github.com/EVE-Tools/emdr-to-nsq/lib/emds"
+	"github.com/EVE-Tools/goesi"
+	"github.com/EVE-Tools/goesi/v1"
 	"github.com/EVE-Tools/market-streamer/lib/locations/citadels"
 	"github.com/EVE-Tools/market-streamer/lib/locations/locationCache"
 	"github.com/EVE-Tools/market-streamer/lib/marketTypes"
 	"github.com/Sirupsen/logrus"
-	"github.com/antihax/goesi"
-	"github.com/antihax/goesi/v1"
 	"github.com/klauspost/compress/zlib"
 	"golang.org/x/net/context"
 )
