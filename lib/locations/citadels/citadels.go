@@ -4,9 +4,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/EVE-Tools/goesi"
 	"github.com/EVE-Tools/market-streamer/lib/locations/locationCache"
 	"github.com/Sirupsen/logrus"
-	"github.com/antihax/goesi"
 )
 
 var esiClient goesi.APIClient
