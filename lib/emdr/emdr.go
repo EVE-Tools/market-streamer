@@ -1,8 +1,6 @@
 package emdr
 
 import (
-	"runtime/debug"
-
 	"github.com/pebbe/zmq4"
 )
 
@@ -33,8 +31,5 @@ func runSendLoop() {
 	for {
 		msg := <-messageChannel
 		upstreamSocket.SendBytes(msg, 0)
-
-		// Don't block OS memory for that long due to a bigger message every now and then
-		debug.FreeOSMemory()
 	}
 }
