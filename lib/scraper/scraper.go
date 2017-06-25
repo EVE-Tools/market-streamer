@@ -80,9 +80,9 @@ func ScrapeMarket(regionID int64) ([]byte, *time.Time, error) {
 		logrus.WithError(err).Warn("Could not parse ESI expires timestamp!")
 	}
 
-	// If expired in the past check back in five seconds (see next line) as the CDN might take some time to refresh
+	// If expired in the past check back in fifteen seconds (see next line) as the CDN might take some time to refresh
 	if expiry.Before(time.Now()) {
-		expiry = time.Now()
+		expiry = time.Now().Add(time.Second * 10)
 	}
 
 	// Re-schedule self with 5 second safety margin
