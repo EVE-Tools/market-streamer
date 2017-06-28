@@ -12,11 +12,16 @@ import (
 
 var upstream chan<- []byte
 
-// regionID -> Update time
+// regionID -> Update time, last modified time
 var regionUpdateSchedule = struct {
 	sync.RWMutex
-	store map[int64]time.Time
-}{store: make(map[int64]time.Time)}
+	store map[int64]scheduleEntry
+}{store: make(map[int64]scheduleEntry)}
+
+type scheduleEntry struct {
+	runAgain     time.Time
+	lastModified time.Time
+}
 
 // Initialize initializes the market and region update scheduling
 func Initialize(emdr chan<- []byte) {
@@ -25,7 +30,11 @@ func Initialize(emdr chan<- []byte) {
 
 	regionUpdateSchedule.Lock()
 	for _, regionID := range regionIDs {
-		regionUpdateSchedule.store[regionID] = time.Now().Add(time.Second * time.Duration(rand.Intn(300)))
+		randomOffset := time.Now().Add(time.Second * time.Duration(rand.Intn(300)))
+		regionUpdateSchedule.store[regionID] = scheduleEntry{
+			runAgain:     randomOffset,
+			lastModified: time.Time{},
+		}
 	}
 	regionUpdateSchedule.Unlock()
 
@@ -35,9 +44,12 @@ func Initialize(emdr chan<- []byte) {
 }
 
 // ScheduleRegion schedules the regionID for update at a specific time
-func ScheduleRegion(regionID int64, timestamp time.Time) {
+func ScheduleRegion(regionID int64, runAgain time.Time, lastModified time.Time) {
 	regionUpdateSchedule.Lock()
-	regionUpdateSchedule.store[regionID] = timestamp
+	cacheEntry := regionUpdateSchedule.store[regionID]
+	cacheEntry.runAgain = runAgain
+	cacheEntry.lastModified = lastModified
+	regionUpdateSchedule.store[regionID] = cacheEntry
 	regionUpdateSchedule.Unlock()
 }
 
@@ -57,14 +69,18 @@ func updateRegions() {
 
 	regionUpdateSchedule.Lock()
 	oldMap := regionUpdateSchedule.store
-	regionUpdateSchedule.store = make(map[int64]time.Time)
+	regionUpdateSchedule.store = make(map[int64]scheduleEntry)
 
 	for _, regionID := range regionIDs {
 		// Transfer regions from old map or add new entries
-		if oldTimestamp, ok := oldMap[regionID]; ok {
-			regionUpdateSchedule.store[regionID] = oldTimestamp
+		if oldEntry, ok := oldMap[regionID]; ok {
+			regionUpdateSchedule.store[regionID] = oldEntry
 		} else {
-			regionUpdateSchedule.store[regionID] = time.Now().Add(time.Second * time.Duration(rand.Int63n(300)))
+			randomOffset := time.Now().Add(time.Second * time.Duration(rand.Intn(300)))
+			regionUpdateSchedule.store[regionID] = scheduleEntry{
+				runAgain:     randomOffset,
+				lastModified: time.Time{},
+			}
 		}
 	}
 	regionUpdateSchedule.Unlock()
@@ -83,19 +99,25 @@ func scheduleMarketUpdate() {
 // Updates markets
 func updateMarkets() {
 	regionUpdateSchedule.Lock()
-	for regionID, timestamp := range regionUpdateSchedule.store {
-		if timestamp.Before(time.Now()) {
+	for regionID, entry := range regionUpdateSchedule.store {
+		if entry.runAgain.Before(time.Now()) {
 			// Update again in 10 minutes if not re-scheduled by itself
-			regionUpdateSchedule.store[regionID] = time.Now().Add(time.Second * 600)
-			go func(regionID int64) {
-				payload, runAgain, err := scraper.ScrapeMarket(regionID)
+			entry.runAgain = time.Now().Add(time.Second * 600)
+			regionUpdateSchedule.store[regionID] = entry
+
+			go func(regionID int64, lastModified time.Time) {
+				payload, runAgain, newLastModified, err := scraper.ScrapeMarket(regionID, lastModified)
 				if err != nil {
 					logrus.WithError(err).Error("Failed to scrape market.")
 					return
 				}
-				upstream <- payload
-				ScheduleRegion(regionID, *runAgain)
-			}(regionID)
+
+				if payload != nil {
+					// Payload could be nil when there was no modifiaction of the market
+					upstream <- payload
+				}
+				ScheduleRegion(regionID, *runAgain, *newLastModified)
+			}(regionID, entry.lastModified)
 		}
 	}
 	regionUpdateSchedule.Unlock()

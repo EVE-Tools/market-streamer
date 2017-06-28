@@ -58,26 +58,27 @@ func Initialize(clientID string, secretKey string, refreshToken string) {
 }
 
 // ScrapeMarket gets a market from ESI and pushes it to supported backends
-func ScrapeMarket(regionID int64) ([]byte, *time.Time, error) {
+func ScrapeMarket(regionID int64, lastModified time.Time) ([]byte, *time.Time, *time.Time, error) {
 	// Prepare empty rowsets with all market types
 	rowsets := generateRowsetsForRegion(regionID)
 
 	//
 	// Fetch public region Orders
 	//
-	// // First page -> re-schedule
+	// // First page -> re-schedule, check if modified since last execution
 	params := make(map[string]interface{})
 	params["page"] = int32(1)
 
 	esiOrdersRegion, response, err := esiClient.V1.MarketApi.GetMarketsRegionIdOrders("all", int32(regionID), params)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	expiry, err := time.Parse(time.RFC1123, response.Header.Get("expires"))
 	if err != nil {
 		// Will run in 10 minutes, anyway
 		logrus.WithError(err).Warn("Could not parse ESI expires timestamp!")
+		return nil, nil, nil, err
 	}
 
 	// If expired in the past check back in fifteen seconds (see next line) as the CDN might take some time to refresh
@@ -88,10 +89,28 @@ func ScrapeMarket(regionID int64) ([]byte, *time.Time, error) {
 	// Re-schedule self with 5 second safety margin
 	runAgain := expiry.Add(time.Second * 5)
 
+	// Check if we really got a new market or the cached version from last time
+	newLastModified, err := time.Parse(time.RFC1123, response.Header.Get("last-modified"))
+	if err != nil {
+		// Will run in 10 minutes, anyway
+		logrus.WithError(err).Warn("Could not parse ESI last-modified timestamp!")
+		return nil, nil, nil, err
+	}
+
+	if !newLastModified.After(lastModified) {
+		// We got an old market, stop here
+		logrus.WithFields(logrus.Fields{
+			"regionID": regionID,
+			"runAgain": runAgain,
+		}).Info("Old market.")
+
+		return nil, &runAgain, &newLastModified, nil
+	}
+
 	// Add orders to rowset
 	err = appendResponseRegion(rowsets, esiOrdersRegion, response)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// Fetch all other pages
@@ -99,13 +118,13 @@ func ScrapeMarket(regionID int64) ([]byte, *time.Time, error) {
 		params["page"] = params["page"].(int32) + 1
 		esiOrdersRegion, response, err = esiClient.V1.MarketApi.GetMarketsRegionIdOrders("all", int32(regionID), params)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		// Add orders to rowset
 		err = appendResponseRegion(rowsets, esiOrdersRegion, response)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 	}
 
@@ -123,13 +142,13 @@ func ScrapeMarket(regionID int64) ([]byte, *time.Time, error) {
 				citadels.BlacklistCitadel(citadelID)
 				continue
 			}
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		// Add orders to rowset
 		err = appendResponseCitadel(rowsets, esiOrdersCitadel, response)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		// Fetch all other pages
@@ -137,13 +156,13 @@ func ScrapeMarket(regionID int64) ([]byte, *time.Time, error) {
 			params["page"] = params["page"].(int32) + 1
 			esiOrdersCitadel, response, err = esiClient.V1.MarketApi.GetMarketsStructuresStructureId(esiPublicContext, citadelID, params)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 
 			// Add orders to rowset
 			err = appendResponseCitadel(rowsets, esiOrdersCitadel, response)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 		}
 	}
@@ -196,19 +215,19 @@ func ScrapeMarket(regionID int64) ([]byte, *time.Time, error) {
 
 	rowsetJSON, err := emds.RowsetsToUUDIF(rowsetSlice, "Element43/market-streamer", "0.1")
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	var compressedJSONBuffer bytes.Buffer
 	compressionWriter := zlib.NewWriter(&compressedJSONBuffer)
 	_, err = compressionWriter.Write(rowsetJSON)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = compressionWriter.Close()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	compressedJSON := compressedJSONBuffer.Bytes()
@@ -220,7 +239,7 @@ func ScrapeMarket(regionID int64) ([]byte, *time.Time, error) {
 		"bytesCompressed":   len(compressedJSON),
 	}).Info("Uploading market.")
 
-	return compressedJSON, &runAgain, nil
+	return compressedJSON, &runAgain, &newLastModified, nil
 }
 
 // Type conversion for regions
