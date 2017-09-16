@@ -10,8 +10,8 @@ import (
 	"github.com/EVE-Tools/market-streamer/lib/marketTypes"
 	"github.com/EVE-Tools/market-streamer/lib/scheduler"
 	"github.com/EVE-Tools/market-streamer/lib/scraper"
-	"github.com/Sirupsen/logrus"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/sirupsen/logrus"
 )
 
 // Config holds the application's configuration info from the environment.

@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/EVE-Tools/market-streamer/lib/locations/locationCache"
-	"github.com/Sirupsen/logrus"
 	"github.com/antihax/goesi"
+	"github.com/sirupsen/logrus"
 )
 
 var esiClient goesi.APIClient

@@ -12,10 +12,10 @@ import (
 	"github.com/EVE-Tools/market-streamer/lib/locations/citadels"
 	"github.com/EVE-Tools/market-streamer/lib/locations/locationCache"
 	"github.com/EVE-Tools/market-streamer/lib/marketTypes"
-	"github.com/Sirupsen/logrus"
 	"github.com/antihax/goesi"
 	"github.com/antihax/goesi/v1"
 	"github.com/klauspost/compress/zlib"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 

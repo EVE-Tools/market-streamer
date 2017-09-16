@@ -7,7 +7,7 @@ import (
 
 	"github.com/EVE-Tools/market-streamer/lib/locations/regions"
 	"github.com/EVE-Tools/market-streamer/lib/scraper"
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 var upstream chan<- []byte

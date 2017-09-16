@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/antihax/goesi"
+	"github.com/sirupsen/logrus"
 )
 
 var esiClient goesi.APIClient
