@@ -28,6 +28,9 @@ func Initialize(url string) {
 
 // GetLocations returns a (cached) version of location info from the location endpoint
 func GetLocations(locationIDs []int64) (map[int64]*staticData.Location, error) {
+	// Deduplicate IDs
+	locationIDs = deduplicateIDs(locationIDs)
+
 	// Check which locations are in cache, request missing
 	var missingLocations []int64
 
@@ -67,10 +70,9 @@ func GetLocations(locationIDs []int64) (map[int64]*staticData.Location, error) {
 		}
 
 		for _, location := range parsedResponse {
-			var loc = location
-
+			loc := location
 			locationCache.Lock()
-			locationCache.store[location.Station.ID] = &loc
+			locationCache.store[loc.Station.ID] = &loc
 			locationCache.Unlock()
 		}
 	}
@@ -125,4 +127,26 @@ func GetLocation(locationID int64) (*staticData.Location, error) {
 	}
 
 	return locationCache.store[locationID], nil
+}
+
+// Deduplicate a slice of integers
+func deduplicateIDs(ids []int64) []int64 {
+	// This is a small trick for deduplicating IDs: Simply create a map
+	// and use it as a set by mapping the keys to empty values, then re-add
+	// keys to target slice. The map has constant lookup time, so adding the
+	// keys is really fast and the size of the target slice is already determined
+	// by the map. This is more efficient than a naïve algorithm.
+	idSet := make(map[int64]struct{})
+	for _, id := range ids {
+		idSet[id] = struct{}{}
+	}
+
+	var i int
+	uniqueIDs := make([]int64, len(idSet))
+	for id := range idSet {
+		uniqueIDs[i] = id
+		i++
+	}
+
+	return uniqueIDs
 }
