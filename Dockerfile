@@ -11,6 +11,9 @@ RUN printf "http://mirror.leaseweb.com/alpine/v3.6/main\nhttp://mirror.leaseweb.
     apk add zeromq ca-certificates && \
     rm -rf /var/cache/apk/*
 
+# Do not run as root
+USER element43:element43
+
 # Copy build
 COPY market-streamer market-streamer
 
