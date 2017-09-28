@@ -1,23 +1,19 @@
 package marketTypes
 
 import (
-	"net/http"
 	"time"
 
 	"github.com/antihax/goesi"
 	"github.com/sirupsen/logrus"
 )
 
-var esiClient goesi.APIClient
+var esiClient *goesi.APIClient
 var esiSemaphore = make(chan struct{}, 200)
 var typeIDs []int64
 
 // Initialize initializes the market type updates
-func Initialize() {
-	httpClient := &http.Client{
-		Timeout: time.Duration(time.Second * 10),
-	}
-	esiClient = *goesi.NewAPIClient(httpClient, "Element43/market-streamer (element-43.com)")
+func Initialize(client *goesi.APIClient) {
+	esiClient = client
 
 	updateTypes()
 	go scheduleTypeUpdate()
@@ -93,7 +89,7 @@ func getTypeIDs() ([]int32, error) {
 	params := make(map[string]interface{})
 	params["page"] = int32(1)
 
-	typeResult, _, err := esiClient.V1.UniverseApi.GetUniverseTypes(params)
+	typeResult, _, err := esiClient.ESI.UniverseApi.GetUniverseTypes(params)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +98,7 @@ func getTypeIDs() ([]int32, error) {
 
 	for len(typeResult) > 0 {
 		params["page"] = params["page"].(int32) + 1
-		typeResult, _, err = esiClient.V1.UniverseApi.GetUniverseTypes(params)
+		typeResult, _, err = esiClient.ESI.UniverseApi.GetUniverseTypes(params)
 		if err != nil {
 			return nil, err
 		}
@@ -145,14 +141,15 @@ func checkIfMarketTypeAsyncRetry(typeID int32, marketTypes chan int64, nonMarket
 // Check if type is market type
 func checkIfMarketType(typeID int32) (bool, error) {
 	esiSemaphore <- struct{}{}
-	typeInfo, _, err := esiClient.V3.UniverseApi.GetUniverseTypesTypeId(typeID, nil)
+	typeInfo, _, err := esiClient.ESI.UniverseApi.GetUniverseTypesTypeId(typeID, nil)
 	<-esiSemaphore
 	if err != nil {
 		return false, err
 	}
 
+	// TODO: Once deployed, check for market type again!
 	// If it is published and has a market group it is a market type!
-	if typeInfo.Published && (typeInfo.MarketGroupId != 0) {
+	if typeInfo.Published /*&& (typeInfo.MarketGroupId != 0)*/ {
 		return true, nil
 	}
 

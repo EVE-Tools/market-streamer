@@ -1,22 +1,19 @@
 package regions
 
 import (
-	"net/http"
 	"time"
 
 	"github.com/antihax/goesi"
 	"github.com/sirupsen/logrus"
 )
 
-var esiClient goesi.APIClient
+var esiClient *goesi.APIClient
 var regionIDs []int64
 
 // Initialize initializes the region updates
-func Initialize() {
-	httpClient := &http.Client{
-		Timeout: time.Duration(time.Second * 10),
-	}
-	esiClient = *goesi.NewAPIClient(httpClient, "Element43/market-streamer (element-43.com")
+func Initialize(client *goesi.APIClient) {
+	esiClient = client
+
 	updateRegions()
 	go scheduleRegionUpdate()
 }
@@ -52,7 +49,7 @@ func updateRegions() {
 
 // Get all regionIDs from ESI
 func getRegionIDs() ([]int32, error) {
-	regionIDs, _, err := esiClient.V1.UniverseApi.GetUniverseRegions(nil)
+	regionIDs, _, err := esiClient.ESI.UniverseApi.GetUniverseRegions(nil)
 	if err != nil {
 		return nil, err
 	}

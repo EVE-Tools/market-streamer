@@ -9,7 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var esiClient goesi.APIClient
+var esiClient *goesi.APIClient
 
 // Maps a regionID to citadelIDs in that region
 var citadelsInRegion = struct {
@@ -24,8 +24,9 @@ var citadelBlacklist = struct {
 }{store: make(map[int64]bool)}
 
 // Initialize initializes the citadel updates
-func Initialize() {
-	esiClient = *goesi.NewAPIClient(nil, "Element43/market-streamer (element-43.com")
+func Initialize(client *goesi.APIClient) {
+	esiClient = client
+
 	updateCitadels()
 	go scheduleCitadelUpdate()
 	go scheduleBlacklistWipe()
@@ -125,7 +126,7 @@ func wipeBlacklist() {
 
 // Get all citadels from ESI
 func getCitadelIDs() ([]int64, error) {
-	citadelIDs, _, err := esiClient.V1.UniverseApi.GetUniverseStructures(nil)
+	citadelIDs, _, err := esiClient.ESI.UniverseApi.GetUniverseStructures(nil)
 	if err != nil {
 		return nil, err
 	}

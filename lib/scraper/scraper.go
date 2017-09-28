@@ -13,23 +13,19 @@ import (
 	"github.com/EVE-Tools/market-streamer/lib/locations/locationCache"
 	"github.com/EVE-Tools/market-streamer/lib/marketTypes"
 	"github.com/antihax/goesi"
-	"github.com/antihax/goesi/v1"
+	"github.com/antihax/goesi/esi"
 	"github.com/klauspost/compress/zlib"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
-type esiOrder goesiv1.GetMarketsRegionIdOrders200Ok
+type esiOrder esi.GetMarketsRegionIdOrders200Ok
 
-var esiClient goesi.APIClient
+var esiClient *goesi.APIClient
 var esiPublicContext context.Context
 
 // Initialize initializes the scraper
-func Initialize(clientID string, secretKey string, refreshToken string) {
-	httpClient := &http.Client{
-		Timeout: time.Duration(time.Second * 10),
-	}
-
+func Initialize(clientID string, secretKey string, refreshToken string, httpClient *http.Client, client *goesi.APIClient) {
 	// Requests to citadel's markets are authenticated - we're just using a default key for retrieving public markets
 	esiAuthenticator := goesi.NewSSOAuthenticator(
 		httpClient,
@@ -54,7 +50,7 @@ func Initialize(clientID string, secretKey string, refreshToken string) {
 	}
 
 	esiPublicContext = context.WithValue(context.TODO(), goesi.ContextOAuth2, esiPublicToken)
-	esiClient = *goesi.NewAPIClient(httpClient, "Element43/market-streamer (element-43.com)")
+	esiClient = client
 }
 
 // ScrapeMarket gets a market from ESI and pushes it to supported backends
@@ -69,7 +65,7 @@ func ScrapeMarket(regionID int64, lastModified time.Time) ([]byte, *time.Time, *
 	params := make(map[string]interface{})
 	params["page"] = int32(1)
 
-	esiOrdersRegion, response, err := esiClient.V1.MarketApi.GetMarketsRegionIdOrders("all", int32(regionID), params)
+	esiOrdersRegion, response, err := esiClient.ESI.MarketApi.GetMarketsRegionIdOrders("all", int32(regionID), params)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -116,7 +112,7 @@ func ScrapeMarket(regionID int64, lastModified time.Time) ([]byte, *time.Time, *
 	// Fetch all other pages
 	for len(esiOrdersRegion) > 0 {
 		params["page"] = params["page"].(int32) + 1
-		esiOrdersRegion, response, err = esiClient.V1.MarketApi.GetMarketsRegionIdOrders("all", int32(regionID), params)
+		esiOrdersRegion, response, err = esiClient.ESI.MarketApi.GetMarketsRegionIdOrders("all", int32(regionID), params)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -135,7 +131,7 @@ func ScrapeMarket(regionID int64, lastModified time.Time) ([]byte, *time.Time, *
 
 	for _, citadelID := range citadelIDs {
 		params["page"] = int32(1)
-		esiOrdersCitadel, response, err := esiClient.V1.MarketApi.GetMarketsStructuresStructureId(esiPublicContext, citadelID, params)
+		esiOrdersCitadel, response, err := esiClient.ESI.MarketApi.GetMarketsStructuresStructureId(esiPublicContext, citadelID, params)
 		if err != nil {
 			// Blacklist and skip these citadels
 			if (response != nil) && (response.StatusCode == 403) {
@@ -154,7 +150,7 @@ func ScrapeMarket(regionID int64, lastModified time.Time) ([]byte, *time.Time, *
 		// Fetch all other pages
 		for len(esiOrdersCitadel) > 0 {
 			params["page"] = params["page"].(int32) + 1
-			esiOrdersCitadel, response, err = esiClient.V1.MarketApi.GetMarketsStructuresStructureId(esiPublicContext, citadelID, params)
+			esiOrdersCitadel, response, err = esiClient.ESI.MarketApi.GetMarketsStructuresStructureId(esiPublicContext, citadelID, params)
 			if err != nil {
 				return nil, nil, nil, err
 			}
@@ -243,7 +239,7 @@ func ScrapeMarket(regionID int64, lastModified time.Time) ([]byte, *time.Time, *
 }
 
 // Type conversion for regions
-func appendResponseRegion(rowsets map[int64]*emds.Rowset, regionOrders []goesiv1.GetMarketsRegionIdOrders200Ok, response *http.Response) error {
+func appendResponseRegion(rowsets map[int64]*emds.Rowset, regionOrders []esi.GetMarketsRegionIdOrders200Ok, response *http.Response) error {
 	var orders []esiOrder
 
 	for _, regionOrder := range regionOrders {
@@ -254,7 +250,7 @@ func appendResponseRegion(rowsets map[int64]*emds.Rowset, regionOrders []goesiv1
 }
 
 // Type conversion for citadels
-func appendResponseCitadel(rowsets map[int64]*emds.Rowset, citadelOrders []goesiv1.GetMarketsStructuresStructureId200Ok, response *http.Response) error {
+func appendResponseCitadel(rowsets map[int64]*emds.Rowset, citadelOrders []esi.GetMarketsStructuresStructureId200Ok, response *http.Response) error {
 	var orders []esiOrder
 
 	for _, citadelOrder := range citadelOrders {

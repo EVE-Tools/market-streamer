@@ -1,8 +1,11 @@
 package main
 
 import (
+	"net/http"
 	"runtime"
+	"time"
 
+	"github.com/EVE-Tools/element43/go/lib/transport"
 	"github.com/EVE-Tools/market-streamer/lib/emdr"
 	"github.com/EVE-Tools/market-streamer/lib/locations/citadels"
 	"github.com/EVE-Tools/market-streamer/lib/locations/locationCache"
@@ -10,6 +13,7 @@ import (
 	"github.com/EVE-Tools/market-streamer/lib/marketTypes"
 	"github.com/EVE-Tools/market-streamer/lib/scheduler"
 	"github.com/EVE-Tools/market-streamer/lib/scraper"
+	"github.com/antihax/goesi"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
 )
@@ -28,15 +32,30 @@ type Config struct {
 var config Config
 
 func main() {
+	const userAgent string = "Element43/market-streamer (element-43.com)"
+	const timeout time.Duration = time.Duration(time.Second * 10)
+
+	httpClient := &http.Client{
+		Timeout:   timeout,
+		Transport: transport.NewTransport(userAgent),
+	}
+
+	httpClientESI := &http.Client{
+		Timeout:   timeout,
+		Transport: transport.NewESITransport(userAgent, timeout),
+	}
+
+	esiClient := goesi.NewAPIClient(httpClientESI, userAgent)
+
 	// Load config and connect to queues
 	loadConfig()
 	emdr := emdr.Initialize(config.ZMQBindEndpoint)
-	locationCache.Initialize(config.LocationServiceURL)
-	regions.Initialize()
-	citadels.Initialize()
-	marketTypes.Initialize()
+	locationCache.Initialize(config.LocationServiceURL, httpClient)
+	regions.Initialize(esiClient)
+	citadels.Initialize(esiClient)
+	marketTypes.Initialize(esiClient)
 	scheduler.Initialize(emdr)
-	scraper.Initialize(config.ClientID, config.SecretKey, config.RefreshToken)
+	scraper.Initialize(config.ClientID, config.SecretKey, config.RefreshToken, httpClientESI, esiClient)
 	logrus.Debug("Done.")
 
 	// Terminate this goroutine, crash if all other goroutines exited

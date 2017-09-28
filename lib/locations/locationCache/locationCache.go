@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sync"
-	"time"
 
 	staticData "github.com/EVE-Tools/static-data/lib/locations"
 )
@@ -18,12 +17,10 @@ var locationCache = struct {
 }{store: make(map[int64]*staticData.Location)}
 
 // Initialize initializes infrastructure for locations
-func Initialize(url string) {
+func Initialize(url string, client *http.Client) {
 	locationServiceURL = url
 
-	httpClient = &http.Client{
-		Timeout: time.Duration(time.Second * 10),
-	}
+	httpClient = client
 }
 
 // GetLocations returns a (cached) version of location info from the location endpoint
