@@ -126,7 +126,7 @@ func wipeBlacklist() {
 
 // Get all citadels from ESI
 func getCitadelIDs() ([]int64, error) {
-	citadelIDs, _, err := esiClient.ESI.UniverseApi.GetUniverseStructures(nil)
+	citadelIDs, _, err := esiClient.ESI.UniverseApi.GetUniverseStructures(nil, nil)
 	if err != nil {
 		return nil, err
 	}

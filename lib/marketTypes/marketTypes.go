@@ -89,7 +89,7 @@ func getTypeIDs() ([]int32, error) {
 	params := make(map[string]interface{})
 	params["page"] = int32(1)
 
-	typeResult, _, err := esiClient.ESI.UniverseApi.GetUniverseTypes(params)
+	typeResult, _, err := esiClient.ESI.UniverseApi.GetUniverseTypes(nil, params)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func getTypeIDs() ([]int32, error) {
 
 	for len(typeResult) > 0 {
 		params["page"] = params["page"].(int32) + 1
-		typeResult, _, err = esiClient.ESI.UniverseApi.GetUniverseTypes(params)
+		typeResult, _, err = esiClient.ESI.UniverseApi.GetUniverseTypes(nil, params)
 		if err != nil {
 			return nil, err
 		}
@@ -141,7 +141,7 @@ func checkIfMarketTypeAsyncRetry(typeID int32, marketTypes chan int64, nonMarket
 // Check if type is market type
 func checkIfMarketType(typeID int32) (bool, error) {
 	esiSemaphore <- struct{}{}
-	typeInfo, _, err := esiClient.ESI.UniverseApi.GetUniverseTypesTypeId(typeID, nil)
+	typeInfo, _, err := esiClient.ESI.UniverseApi.GetUniverseTypesTypeId(nil, typeID, nil)
 	<-esiSemaphore
 	if err != nil {
 		return false, err

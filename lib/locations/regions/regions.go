@@ -49,7 +49,7 @@ func updateRegions() {
 
 // Get all regionIDs from ESI
 func getRegionIDs() ([]int32, error) {
-	regionIDs, _, err := esiClient.ESI.UniverseApi.GetUniverseRegions(nil)
+	regionIDs, _, err := esiClient.ESI.UniverseApi.GetUniverseRegions(nil, nil)
 	if err != nil {
 		return nil, err
 	}

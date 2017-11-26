@@ -65,7 +65,7 @@ func ScrapeMarket(regionID int64, lastModified time.Time) ([]byte, *time.Time, *
 	params := make(map[string]interface{})
 	params["page"] = int32(1)
 
-	esiOrdersRegion, response, err := esiClient.ESI.MarketApi.GetMarketsRegionIdOrders("all", int32(regionID), params)
+	esiOrdersRegion, response, err := esiClient.ESI.MarketApi.GetMarketsRegionIdOrders(nil, "all", int32(regionID), params)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -112,7 +112,7 @@ func ScrapeMarket(regionID int64, lastModified time.Time) ([]byte, *time.Time, *
 	// Fetch all other pages
 	for len(esiOrdersRegion) > 0 {
 		params["page"] = params["page"].(int32) + 1
-		esiOrdersRegion, response, err = esiClient.ESI.MarketApi.GetMarketsRegionIdOrders("all", int32(regionID), params)
+		esiOrdersRegion, response, err = esiClient.ESI.MarketApi.GetMarketsRegionIdOrders(nil, "all", int32(regionID), params)
 		if err != nil {
 			return nil, nil, nil, err
 		}
