@@ -8,6 +8,8 @@ import (
 	"sort"
 	"time"
 
+	"golang.org/x/oauth2"
+
 	"github.com/EVE-Tools/emdr-to-nsq/lib/emds"
 	"github.com/EVE-Tools/market-streamer/lib/locations/citadels"
 	"github.com/EVE-Tools/market-streamer/lib/locations/locationCache"
@@ -37,7 +39,7 @@ func Initialize(clientID string, secretKey string, refreshToken string, httpClie
 			"esi-markets.structure_markets.v1"})
 
 	// Build token source for auto-refreshing tokens
-	token := &goesi.CRESTToken{
+	token := &oauth2.Token{
 		AccessToken:  "",
 		TokenType:    "Bearer",
 		RefreshToken: refreshToken,
