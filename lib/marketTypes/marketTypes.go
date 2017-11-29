@@ -147,9 +147,8 @@ func checkIfMarketType(typeID int32) (bool, error) {
 		return false, err
 	}
 
-	// TODO: Once deployed, check for market type again!
 	// If it is published and has a market group it is a market type!
-	if typeInfo.Published /*&& (typeInfo.MarketGroupId != 0)*/ {
+	if typeInfo.Published && (typeInfo.MarketGroupId != 0) {
 		return true, nil
 	}
 
